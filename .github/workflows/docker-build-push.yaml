@@ -1,0 +1,39 @@
+name: Build and Push to ACR ( review-service )
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set tag
+        id: vars
+        run: echo "TAG=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+
+      - name: Docker login to ACR
+        run: |
+          echo "${{ secrets.ACR_PASSWORD }}" | docker login ${{ secrets.ACR_LOGIN_SERVER }} -u ${{ secrets.ACR_USERNAME }} --password-stdin
+
+      - name: Build
+        run: |
+          docker build -t "${{ secrets.ACR_LOGIN_SERVER }}/review-service:${{ steps.vars.outputs.TAG }}" .
+
+      - name: Push SHA tag
+        run: |
+          docker push "${{ secrets.ACR_LOGIN_SERVER }}/review-service:${{ steps.vars.outputs.TAG }}"
+
+      - name: Tag dev
+        run: |
+          docker tag "${{ secrets.ACR_LOGIN_SERVER }}/review-service:${{ steps.vars.outputs.TAG }}" "${{ secrets.ACR_LOGIN_SERVER }}/review-service:dev"
+
+      - name: Push dev tag
+        run: |
+          docker push "${{ secrets.ACR_LOGIN_SERVER }}/review-service:dev"
