@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, Header, status
+from fastapi import FastAPI, Depends, HTTPException, Header, status, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func
@@ -21,7 +21,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+router = APIRouter()
+
 Instrumentator().instrument(app).expose(app)
+app.include_router(router, prefix="/reviews")
 
 def get_tenant_id(x_tenant_id: Optional[str] = Header(None)) -> str:
     return x_tenant_id or "public"
@@ -42,9 +45,7 @@ def create_review(
 ):
     # 1) Validate order via gRPC
     try:
-        resp = get_order_by_id(order_id=payload.order_id, tenant_id=tenant_id, timeout_s=2.0)
-    except grpc.RpcError as e:
-        raise HTTPException(status_code=502, detail=f"Order service unavailable: {e}")
+        resp = get_order_by_id(order_id=payload.order_id, tenant_id=tenant_id)
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Order service unavailable: {e}")
 
