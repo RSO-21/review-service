@@ -43,7 +43,6 @@ def create_review(
     tenant_id: str = Depends(get_tenant_id),
     db: Session = Depends(get_db_with_schema),
 ):
-    # 1) Validate order via gRPC
     try:
         resp = get_order_by_id(order_id=payload.order_id, tenant_id=tenant_id)
     except Exception as e:
@@ -54,15 +53,12 @@ def create_review(
 
     order = resp.order
 
-    # 2) Ownership validation
     if order.user_id != payload.user_id:
         raise HTTPException(status_code=403, detail="Order does not belong to user")
 
-    # 3) Must have partner_id (requires your order-service patch storing it on create)
     if not order.HasField("partner_id") or not order.partner_id:
         raise HTTPException(status_code=400, detail="Order has no partner_id set")
 
-    # 4) Enforce 1 review per order (DB unique constraint will also protect)
     existing = db.execute(
         select(Review).where(Review.order_id == payload.order_id)
     ).scalar_one_or_none()
