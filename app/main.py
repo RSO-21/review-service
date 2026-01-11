@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, Header, status, APIRouter
+from fastapi import FastAPI, Depends, HTTPException, Header, Query, status, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy import select, func
@@ -89,6 +89,42 @@ def list_partner_reviews(partner_id: str, db: Session = Depends(get_db_with_sche
         select(Review).where(Review.partner_id == partner_id).order_by(Review.created_at.desc())
     ).scalars().all()
     return reviews
+
+@app.get("/partners/ratings")
+def get_partners_ratings(
+    partner_ids: str = Query(...),
+    db: Session = Depends(get_db_with_schema),
+):
+    partner_ids_list = [pid.strip() for pid in partner_ids.split(",") if pid.strip()]
+
+    rows = db.execute(
+        select(
+            Review.partner_id,
+            func.avg(Review.rating),
+            func.count(Review.id),
+        )
+        .where(Review.partner_id.in_(partner_ids_list))
+        .group_by(Review.partner_id)
+    ).all()
+
+    result = {
+        partner_id: PartnerRatingOut(
+            partner_id=partner_id,
+            avg_rating=float(avg) if avg is not None else 0.0,
+            count=int(count),
+        )
+        for partner_id, avg, count in rows
+    }
+
+    for pid in partner_ids_list:
+        if pid not in result:
+            result[pid] = PartnerRatingOut(
+                partner_id=pid,
+                avg_rating=0.0,
+                count=0,
+            )
+
+    return result
 
 @app.get("/partners/{partner_id}/rating", response_model=PartnerRatingOut)
 def get_partner_rating(partner_id: str, db: Session = Depends(get_db_with_schema)):
