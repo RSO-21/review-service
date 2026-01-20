@@ -72,11 +72,11 @@ def create_review(
     if not order.HasField("partner_id") or not order.partner_id:
         raise HTTPException(status_code=400, detail="Order has no partner_id set")
 
-    existing = db.execute(
-        select(Review).where(Review.order_id == payload.order_id)
-    ).scalar_one_or_none()
-    if existing:
-        raise HTTPException(status_code=409, detail="Order already reviewed")
+    # existing = db.execute(
+    #     select(Review).where(Review.order_id == payload.order_id)
+    # ).scalar_one_or_none()
+    # if existing:
+    #     raise HTTPException(status_code=409, detail="Order already reviewed")
 
     review = Review(
         id=Review.new_id(),
