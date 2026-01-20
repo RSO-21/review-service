@@ -68,9 +68,6 @@ def create_review(
 
     order = resp.order
 
-    if order.user_id != payload.user_id:
-        raise HTTPException(status_code=403, detail="Order does not belong to user")
-
     if not order.HasField("partner_id") or not order.partner_id:
         raise HTTPException(status_code=400, detail="Order has no partner_id set")
 
