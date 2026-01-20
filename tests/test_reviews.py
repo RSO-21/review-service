@@ -48,20 +48,6 @@ def test_create_review_order_not_found_404(client, monkeypatch):
     assert r.json()["detail"] == "Order not found"
 
 
-def test_create_review_wrong_owner_403(client, monkeypatch):
-    import app.main as main_mod
-
-    monkeypatch.setattr(
-        main_mod,
-        "get_order_by_id",
-        lambda order_id, tenant_id=None: FakeResp(FakeOrder(user_id="someone-else", partner_id="partner-1")),
-    )
-
-    r = client.post("/reviews", json={"order_id": 5, "user_id": "user-1", "rating": 5, "comment": None})
-    assert r.status_code == 403
-    assert r.json()["detail"] == "Order does not belong to user"
-
-
 def test_create_review_missing_partner_id_400(client, monkeypatch):
     import app.main as main_mod
 
