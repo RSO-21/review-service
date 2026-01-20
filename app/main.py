@@ -54,9 +54,6 @@ def create_review(
 
     order = resp.order
 
-    # 2) Ownership validation
-    if order.user_id != payload.user_id:
-        raise HTTPException(status_code=403, detail="Order does not belong to user")
 
     # 3) Must have partner_id (requires your order-service patch storing it on create)
     if not order.HasField("partner_id") or not order.partner_id:
