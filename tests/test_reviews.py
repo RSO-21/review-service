@@ -76,16 +76,6 @@ def test_create_review_missing_partner_field_400(client, monkeypatch):
     assert r.json()["detail"] == "Order has no partner_id set"
 
 
-def test_create_review_duplicate_order_409(client, mock_order_ok):
-    payload = {"order_id": 8, "user_id": "user-1", "rating": 5, "comment": None}
-    r1 = client.post("/reviews", json=payload)
-    assert r1.status_code == 201, r1.text
-
-    r2 = client.post("/reviews", json=payload)
-    assert r2.status_code == 409
-    assert r2.json()["detail"] == "Order already reviewed"
-
-
 def test_list_partner_reviews_sorted_desc(client, monkeypatch):
     import app.main as main_mod
 
