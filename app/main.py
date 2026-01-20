@@ -21,7 +21,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+router = APIRouter()
 Instrumentator().instrument(app).expose(app)
+app.include_router(router)
 
 def get_tenant_id(x_tenant_id: Optional[str] = Header(None)) -> str:
     return x_tenant_id or "public"
@@ -49,10 +51,9 @@ def health(db: Session = Depends(get_db_with_schema)):
 def root():
     return {"message": "Review Service is running"}
 
-router = APIRouter()
-app.include_router(router)
 
-@router.post("/reviews", response_model=ReviewOut, status_code=201)
+
+@app.post("/reviews", response_model=ReviewOut, status_code=201)
 def create_review(
     payload: ReviewCreate,
     tenant_id: str = Depends(get_tenant_id),
@@ -91,14 +92,14 @@ def create_review(
     db.refresh(review)
     return review
 
-@router.get("/partners/{partner_id}/reviews", response_model=List[ReviewOut])
+@app.get("/partners/{partner_id}/reviews", response_model=List[ReviewOut])
 def list_partner_reviews(partner_id: str, db: Session = Depends(get_db_with_schema)):
     reviews = db.execute(
         select(Review).where(Review.partner_id == partner_id).order_by(Review.created_at.desc())
     ).scalars().all()
     return reviews
 
-@router.get("/partners/ratings")
+@app.get("/partners/ratings")
 def get_partners_ratings(
     partner_ids: str = Query(...),
     db: Session = Depends(get_db_with_schema),
@@ -134,7 +135,7 @@ def get_partners_ratings(
 
     return result
 
-@router.get("/partners/{partner_id}/rating", response_model=PartnerRatingOut)
+@app.get("/partners/{partner_id}/rating", response_model=PartnerRatingOut)
 def get_partner_rating(partner_id: str, db: Session = Depends(get_db_with_schema)):
     row = db.execute(
         select(func.avg(Review.rating), func.count(Review.id)).where(Review.partner_id == partner_id)
